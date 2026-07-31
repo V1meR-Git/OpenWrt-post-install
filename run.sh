@@ -10,6 +10,6 @@ fi
 chmod +x /tmp/install.sh
 
 echo "Запуск установки..."
-/tmp/install.sh
+/tmp/install.sh < /dev/tty
 
 rm -f /tmp/install.sh
