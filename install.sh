@@ -40,21 +40,28 @@ apk add \
 
 echo "Настройка luci..."
 uci set luci.main.lang='ru'
+uci set luci.main.mediaurlbase='/luci-static/bootstrap-dark'
+uci set luci.main.tablefilters='1'
 uci set attendedsysupgrade.client.login_check_for_upgrades='1'
 uci set system.@system[0].hostname='OpenWRT'
 uci set system.@system[0].timezone='MSK-3'
 uci set system.@system[0].zonename='Europe/Moscow'
 uci set system.@system[0].clock_hourcycle='h23'
+uci set system.@system[0].clock_timestyle='1'
 
 uci set wireless.default_radio0.mode='ap'
 uci set wireless.default_radio0.ssid='OpenWRT'
 uci set wireless.default_radio0.encryption='sae-mixed'
 uci set wireless.default_radio0.key='00000039A8'
+uci set wireless.radio0.channel='11'
+uci delete wireless.default_radio0.disabled='1'
 
 uci set wireless.default_radio1.mode='ap'
 uci set wireless.default_radio1.ssid='OpenWRT'
 uci set wireless.default_radio1.encryption='sae-mixed'
 uci set wireless.default_radio1.key='00000039A8'
+uci delete wireless.default_radio1.disabled='1'
+
 uci set transmission.@transmission[0].enabled='1'
 
 uci commit
@@ -140,7 +147,7 @@ if is_forkop_installed && is_agh_installed; then
             uci delete forkop.settings.dns_server
             uci add_list forkop.settings.dns_server='192.168.1.1:5353'
             uci commit forkop
-            echo "Готово: Forkop теперь будет использовать 192.168.1.1:5353 (AdGuardHome)."
+            echo "Готово: Forkop теперь будет использовать AdGuardHome в качестве основного DNS."
             echo "Интеграция AdGuardHome в Forkop завершена."
             ;;
         *)
@@ -165,14 +172,6 @@ if is_forkop_installed; then
             ;;
     esac
 fi
-
-echo "Завершение настройки..."
-echo "Запускаются службы..."
-
-/etc/init.d/transmission enable
-/etc/init.d/transmission start
-/etc/init.d/forkop enable
-/etc/init.d/forkop start
 
 printf "Готово, рекомендую перезагрузить устройство. Продолжить ? [y/N]: "
 read answer
