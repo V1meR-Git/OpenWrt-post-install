@@ -87,7 +87,7 @@ printf "Установить AdGuardHome ? [y/N]: "
 read answer < /dev/tty
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
-        wget --no-verbose -O - https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+        curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
         echo "Установка AdGuardHome завершена."
         ;;
     *)
