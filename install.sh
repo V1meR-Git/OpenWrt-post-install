@@ -54,13 +54,13 @@ uci set wireless.default_radio0.ssid='OpenWRT'
 uci set wireless.default_radio0.encryption='sae-mixed'
 uci set wireless.default_radio0.key='00000039A8'
 uci set wireless.radio0.channel='11'
-uci delete wireless.default_radio0.disabled='1'
+uci delete wireless.default_radio0.disabled
 
 uci set wireless.default_radio1.mode='ap'
 uci set wireless.default_radio1.ssid='OpenWRT'
 uci set wireless.default_radio1.encryption='sae-mixed'
 uci set wireless.default_radio1.key='00000039A8'
-uci delete wireless.default_radio1.disabled='1'
+uci delete wireless.default_radio1.disabled
 
 uci set transmission.@transmission[0].enabled='1'
 
@@ -76,7 +76,9 @@ read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         echo "Установка пароля root..."
-        passwd
+        until passwd; do
+            echo "Не удалось установить пароль, попробуй ещё раз."
+        done
         ;;
     *)
         echo "Пароль root не будет установлен."
@@ -112,7 +114,7 @@ wait_for_agh_config() {
     echo ""
 
     while true; do
-        printf "AdGuard Home настроен? (y/n): "
+        printf "AdGuard Home настроен ? (y/n): "
         read answer
         case "$answer" in
             y|Y) break ;;
@@ -157,7 +159,7 @@ if is_forkop_installed && is_agh_installed; then
 fi
 
 if is_forkop_installed; then
-    printf "Настроить bootstrap DNS для Forkop (8.8.8.8, 8.8.4.4)? [y/N]: "
+    printf "Настроить bootstrap DNS для Forkop (8.8.8.8, 8.8.4.4) ? [y/N]: "
     read answer
     case "$answer" in
         [Yy]|[Yy][Ee][Ss])
@@ -173,6 +175,98 @@ if is_forkop_installed; then
     esac
 fi
 
+if is_forkop_installed; then
+    printf "Установить Zapret как компонент Forkop ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            forkop component_action zapret install
+            echo "Zapret установлен."
+            ;;
+        *)
+            echo "Установка Zapret пропущена."
+            ;;
+    esac
+fi
+
+if is_forkop_installed; then
+    printf "Установить Zapret2 как компонент Forkop ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            forkop component_action zapret2 install
+            echo "Zapret установлен."
+            ;;
+        *)
+            echo "Установка Zapret2 пропущена."
+            ;;
+    esac
+fi
+
+if is_forkop_installed; then
+    printf "Установить ByeDPI как компонент Forkop ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            forkop component_action byedpi install
+            echo "Zapret установлен."
+            ;;
+        *)
+            echo "Установка ByeDPI пропущена."
+            ;;
+    esac
+fi
+
+if is_forkop_installed; then
+    printf "Добавить профиль Vless в Forkop ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            printf "Введи URL подписки: "
+            read vless_url
+
+            uci set forkop.Vless='section'
+            uci set forkop.Vless.enabled='1'
+            uci set forkop.Vless.action='connection'
+            uci set forkop.Vless.outbound_detour_enabled='0'
+            uci set forkop.Vless.sort_by_latency='0'
+            uci set forkop.Vless.mixed_proxy_enabled='0'
+            uci set forkop.Vless.resolve_real_ip_for_routing='0'
+            uci set forkop.Vless.community_lists='russia_inside'
+            uci set forkop.Vless.dashboard_filter_mode='disabled'
+
+            sub_section=$(uci add forkop subscription_url)
+            uci set forkop.${sub_section}.section='Vless'
+            uci set forkop.${sub_section}.url="$vless_url"
+            uci set forkop.${sub_section}.subscription_update_enabled='1'
+            uci set forkop.${sub_section}.subscription_update_interval='1h'
+            uci set forkop.${sub_section}.download_via_proxy_enabled='0'
+            uci set forkop.${sub_section}.auto_user_agent='1'
+            uci set forkop.${sub_section}.auto_hwid='1'
+            uci set forkop.${sub_section}.show_dashboard_metadata='1'
+            uci set forkop.${sub_section}.prefix_nodes='0'
+            uci set forkop.${sub_section}.include_urltest_groups='1'
+            uci set forkop.${sub_section}.hide_urltest_group_outbounds='1'
+            uci set forkop.${sub_section}.hide_detour_outbounds='1'
+
+            uci commit forkop
+            echo "Профиль Vless добавлен в Forkop."
+            ;;
+        *)
+            echo "Профиль Vless не будет добавлен."
+            ;;
+    esac
+fi
+
+echo "Запуск служб..."
+if is_agh_installed; then
+service AdGuardHome enable
+fi
+
+if is_forkop_installed; then
+service forkop enable
+fi
+
 printf "Готово, рекомендую перезагрузить устройство. Продолжить ? [y/N]: "
 read answer
 case "$answer" in
@@ -182,6 +276,12 @@ case "$answer" in
         ;;
     *) 
         echo "Настройка завершена без перезагрузки."
+        if is_agh_installed; then
+            service AdGuardHome start
+        fi
+        if is_forkop_installed; then
+            service forkop start
+        fi
         exit 0
         ;;
 esac
