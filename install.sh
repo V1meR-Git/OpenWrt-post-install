@@ -55,6 +55,7 @@ uci set wireless.default_radio1.mode='ap'
 uci set wireless.default_radio1.ssid='OpenWRT'
 uci set wireless.default_radio1.encryption='sae-mixed'
 uci set wireless.default_radio1.key='00000039A8'
+uci set transmission.@transmission[0].enabled='1'
 
 uci commit
 
@@ -105,7 +106,7 @@ wait_for_agh_config() {
 
     while true; do
         printf "AdGuard Home настроен? (y/n): "
-        read answer
+        read answer < /dev/tty
         case "$answer" in
             y|Y) break ;;
             n|N) echo "Ок, жду. Настрой и введи y." ;;
