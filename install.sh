@@ -1,6 +1,6 @@
 #!/bin/sh
 printf "Тестовый скрипт для моего удобства. Не рекомендуется использовать на других устройствах. Продолжить ? [y/N]: "
-read answer < /dev/tty
+read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         echo "Продолжаем настройку..."
@@ -65,7 +65,7 @@ echo "Поднимаем Wifi..."
 wifi up
 
 printf "Установить пароль root ? [y/N]: "
-read answer < /dev/tty
+read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         echo "Установка пароля root..."
@@ -85,7 +85,7 @@ is_forkop_installed() {
 }
 
 printf "Установить AdGuardHome ? [y/N]: "
-read answer < /dev/tty
+read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
@@ -106,7 +106,7 @@ wait_for_agh_config() {
 
     while true; do
         printf "AdGuard Home настроен? (y/n): "
-        read answer < /dev/tty
+        read answer
         case "$answer" in
             y|Y) break ;;
             n|N) echo "Ок, жду. Настрой и введи y." ;;
@@ -121,7 +121,7 @@ fi
 echo "-> Продолжаем..."
 
 printf "Установить Forkop ? [y/N]: "
-read answer < /dev/tty
+read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         sh <(wget -O - https://raw.githubusercontent.com/ushan0v/forkop/main/install.sh)
@@ -134,7 +134,7 @@ esac
 
 if is_forkop_installed && is_agh_installed; then
     printf "Интегрировать AdGuardHome в Forkop ? [y/N]: "
-    read answer < /dev/tty
+    read answer
     case "$answer" in
         [Yy]|[Yy][Ee][Ss])        
             uci delete forkop.settings.dns_server
@@ -151,7 +151,7 @@ fi
 
 if is_forkop_installed; then
     printf "Настроить bootstrap DNS для Forkop (8.8.8.8, 8.8.4.4)? [y/N]: "
-    read answer < /dev/tty
+    read answer
     case "$answer" in
         [Yy]|[Yy][Ee][Ss])
             uci delete forkop.settings.bootstrap_dns_server 2>/dev/null
@@ -175,7 +175,7 @@ echo "Запускаются службы..."
 /etc/init.d/forkop start
 
 printf "Готово, рекомендую перезагрузить устройство. Продолжить ? [y/N]: "
-read answer < /dev/tty
+read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
         echo "Перезагрузка..."
