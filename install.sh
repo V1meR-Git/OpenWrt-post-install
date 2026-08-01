@@ -1,5 +1,5 @@
 #!/bin/sh
-printf "Тестовый скрипт для моего удобства. Не рекомендуется использовать на других устройствах. Продолжить ? [y/N]: "
+printf "Вроде написано бодро, но могут быть ошибки в зависимоти от конфигурации. Продолжить ? [y/N]: "
 read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
@@ -30,7 +30,7 @@ printf "Устройство с USB-портом и планируешь исп�
 read usb_answer
 case "$usb_answer" in
     [Yy]|[Yy][Ee][Ss])
-        apk add blockd kmod-fs-vfat kmod-usb-storage-uas kmod-usb3 lsblk
+        apk add blockd kmod-fs-vfat kmod-usb-storage-uas kmod-usb2 kmod-usb3 lsblk
         echo "Пакеты для работы с внешними накопителями установлены."
         ;;
     *)
@@ -99,18 +99,29 @@ while [ ${#wifi_key_input} -lt 8 ]; do
     read wifi_key_input
 done
 
-uci set wireless.default_radio0.mode='ap'
-uci set wireless.default_radio0.ssid="$ssid_input"
-uci set wireless.default_radio0.encryption="$encryption"
-uci set wireless.default_radio0.key="$wifi_key_input"
-uci set wireless.radio0.channel='11'
-uci delete wireless.default_radio0.disabled
+is_radio0_installed() {
+    uci -q get wireless.radio0 >/dev/null 2>&1
+}
 
-uci set wireless.default_radio1.mode='ap'
-uci set wireless.default_radio1.ssid="$ssid_input"
-uci set wireless.default_radio1.encryption="$encryption"
-uci set wireless.default_radio1.key="$wifi_key_input"
-uci delete wireless.default_radio1.disabled
+if is_radio0_installed; then
+    uci set wireless.default_radio0.mode='ap'
+    uci set wireless.default_radio0.ssid="$ssid_input"
+    uci set wireless.default_radio0.encryption="$encryption"
+    uci set wireless.default_radio0.key="$wifi_key_input"
+    uci delete wireless.default_radio0.disabled
+fi
+
+is_radio1_installed() {
+    uci -q get wireless.radio1 >/dev/null 2>&1
+}
+
+if is_radio1_installed; then
+    uci set wireless.default_radio1.mode='ap'
+    uci set wireless.default_radio1.ssid="$ssid_input"
+    uci set wireless.default_radio1.encryption="$encryption"
+    uci set wireless.default_radio1.key="$wifi_key_input"
+    uci delete wireless.default_radio1.disabled
+fi
 
 if apk info -e transmission-daemon >/dev/null 2>&1; then
 uci set transmission.@transmission[0].enabled='1'
@@ -193,6 +204,47 @@ case "$answer" in
         ;;
 esac
 
+if is_forkop_installed; then
+    printf "Добавить секцию Vless в Forkop ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            printf "Введи URL подписки: "
+            read vless_url
+
+            uci set forkop.Vless='section'
+            uci set forkop.Vless.enabled='1'
+            uci set forkop.Vless.action='connection'
+            uci set forkop.Vless.outbound_detour_enabled='0'
+            uci set forkop.Vless.sort_by_latency='0'
+            uci set forkop.Vless.mixed_proxy_enabled='0'
+            uci set forkop.Vless.resolve_real_ip_for_routing='0'
+            uci set forkop.Vless.community_lists='russia_inside'
+            uci set forkop.Vless.dashboard_filter_mode='disabled'
+
+            sub_section=$(uci add forkop subscription_url)
+            uci set forkop.${sub_section}.section='Vless'
+            uci set forkop.${sub_section}.url="$vless_url"
+            uci set forkop.${sub_section}.subscription_update_enabled='1'
+            uci set forkop.${sub_section}.subscription_update_interval='1h'
+            uci set forkop.${sub_section}.download_via_proxy_enabled='0'
+            uci set forkop.${sub_section}.auto_user_agent='1'
+            uci set forkop.${sub_section}.auto_hwid='1'
+            uci set forkop.${sub_section}.show_dashboard_metadata='1'
+            uci set forkop.${sub_section}.prefix_nodes='0'
+            uci set forkop.${sub_section}.include_urltest_groups='1'
+            uci set forkop.${sub_section}.hide_urltest_group_outbounds='1'
+            uci set forkop.${sub_section}.hide_detour_outbounds='1'
+
+            uci commit forkop
+            echo "Секция Vless добавлена в Forkop."
+            ;;
+        *)
+            echo "Секция Vless не будет добавлена."
+            ;;
+    esac
+fi
+
 if is_forkop_installed && is_agh_installed; then
     printf "Интегрировать AdGuardHome в Forkop ? [y/N]: "
     read answer
@@ -241,6 +293,23 @@ if is_forkop_installed; then
     esac
 fi
 
+if is_forkop_installed && apk info -e zapret >/dev/null 2>&1; then
+    printf "Добавить секцию Zapret в Forkop ? "
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            uci set forkop.Zapret=section
+            uci set forkop.Zapret.enabled='1'
+            uci set forkop.Zapret.action='zapret'
+            uci set forkop.Zapret.mixed_proxy_enabled='0'
+            uci add_list forkop.Zapret.community_lists='youtube'
+            echo "Секция Zapret добавлена в Forkop"
+            ;;
+        *)
+            echo "Секция Zapret не будет добавлена."
+            ;;
+    esac
+fi
+
 if is_forkop_installed; then
     printf "Установить Zapret2 как компонент Forkop ? [y/N]: "
     read answer
@@ -265,47 +334,6 @@ if is_forkop_installed; then
             ;;
         *)
             echo "Установка ByeDPI пропущена."
-            ;;
-    esac
-fi
-
-if is_forkop_installed; then
-    printf "Добавить профиль Vless в Forkop ? [y/N]: "
-    read answer
-    case "$answer" in
-        [Yy]|[Yy][Ee][Ss])
-            printf "Введи URL подписки: "
-            read vless_url
-
-            uci set forkop.Vless='section'
-            uci set forkop.Vless.enabled='1'
-            uci set forkop.Vless.action='connection'
-            uci set forkop.Vless.outbound_detour_enabled='0'
-            uci set forkop.Vless.sort_by_latency='0'
-            uci set forkop.Vless.mixed_proxy_enabled='0'
-            uci set forkop.Vless.resolve_real_ip_for_routing='0'
-            uci set forkop.Vless.community_lists='russia_inside'
-            uci set forkop.Vless.dashboard_filter_mode='disabled'
-
-            sub_section=$(uci add forkop subscription_url)
-            uci set forkop.${sub_section}.section='Vless'
-            uci set forkop.${sub_section}.url="$vless_url"
-            uci set forkop.${sub_section}.subscription_update_enabled='1'
-            uci set forkop.${sub_section}.subscription_update_interval='1h'
-            uci set forkop.${sub_section}.download_via_proxy_enabled='0'
-            uci set forkop.${sub_section}.auto_user_agent='1'
-            uci set forkop.${sub_section}.auto_hwid='1'
-            uci set forkop.${sub_section}.show_dashboard_metadata='1'
-            uci set forkop.${sub_section}.prefix_nodes='0'
-            uci set forkop.${sub_section}.include_urltest_groups='1'
-            uci set forkop.${sub_section}.hide_urltest_group_outbounds='1'
-            uci set forkop.${sub_section}.hide_detour_outbounds='1'
-
-            uci commit forkop
-            echo "Профиль Vless добавлен в Forkop."
-            ;;
-        *)
-            echo "Профиль Vless не будет добавлен."
             ;;
     esac
 fi
