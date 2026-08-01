@@ -1,12 +1,14 @@
 # OpenWrt-post-install
 
-Запуск и настройка
+Скрипт для упрощения настройки роутера
+
+Запуск через ssh или ttyd
+
 ```sh
 wget -qO- https://raw.githubusercontent.com/V1meR-Git/OpenWrt-post-install/refs/heads/main/run.sh | sh
 ```
 
-Скрипт для упрощения настройки роутера
-Запуск через ssh или ttyd
+> ### Предназначен для OpenWrt 25.12 или новее. Написан под пакетный менеджер apk
 
 ### Что делает скрипт:
 * Устанавливает основные пакеты
