@@ -3,12 +3,22 @@ printf "Вроде написано бодро, но могут быть оши�
 read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
-        echo "Продолжаем настройку..."
+        echo "Проверка требований..."
         ;;
     *)
         exit 0
         ;;
 esac
+
+if [ -x /usr/bin/apk ] ; then
+echo "Начинаем настройку..."
+else
+echo "Скрипт только для OpenWrt 25.12 и новее"
+echo "Читаем readme в репозитории"
+echo "Заканчиваю работу скрипта..."
+sleep 5
+exit 0
+fi
 
 echo "Обновление списка пакетов..."
 apk update
@@ -294,7 +304,8 @@ if is_forkop_installed; then
 fi
 
 if is_forkop_installed && apk info -e zapret >/dev/null 2>&1; then
-    printf "Добавить секцию Zapret в Forkop ? "
+    printf "Добавить секцию Zapret в Forkop ? [y/N]: "
+    read answer
     case "$answer" in
         [Yy]|[Yy][Ee][Ss])
             uci set forkop.Zapret=section
@@ -357,11 +368,12 @@ case "$answer" in
     *) 
         echo "Настройка завершена без перезагрузки."
         if is_agh_installed; then
-            service AdGuardHome start
+            service AdGuardHome start &
         fi
         if is_forkop_installed; then
-            service forkop start
+            service forkop start &
         fi
+        echo "Службы запущены."
         exit 0
         ;;
 esac
