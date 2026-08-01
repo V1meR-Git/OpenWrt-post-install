@@ -1,5 +1,5 @@
 #!/bin/sh
-printf "Вроде написано бодро, но могут быть ошибки в зависимоти от конфигурации. Продолжить ? [y/N]: "
+printf "Вроде написано бодро, но могут быть ошибки в зависимоcти от конфигурации. Продолжить ? [y/N]: "
 read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
@@ -16,7 +16,7 @@ else
 echo "Скрипт только для OpenWrt 25.12 и новее"
 echo "Читаем readme в репозитории"
 echo "Заканчиваю работу скрипта..."
-sleep 5
+sleep 10
 exit 0
 fi
 
@@ -313,6 +313,7 @@ if is_forkop_installed && apk info -e zapret >/dev/null 2>&1; then
             uci set forkop.Zapret.action='zapret'
             uci set forkop.Zapret.mixed_proxy_enabled='0'
             uci add_list forkop.Zapret.community_lists='youtube'
+            uci commit forkop
             echo "Секция Zapret добавлена в Forkop"
             ;;
         *)
