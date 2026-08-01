@@ -1,5 +1,5 @@
 #!/bin/sh
-printf "Вроде написано бодро, но могут быть ошибки в зависимоcти от конфигурации. Продолжить ? [y/N]: "
+printf "Изначальное написание под Gl-MT3000, на других устройствах могут быть ошибки. Продолжить ? [y/N]: "
 read answer
 case "$answer" in
     [Yy]|[Yy][Ee][Ss])
@@ -118,6 +118,7 @@ if is_radio0_installed; then
     uci set wireless.default_radio0.ssid="$ssid_input"
     uci set wireless.default_radio0.encryption="$encryption"
     uci set wireless.default_radio0.key="$wifi_key_input"
+    uci set wireless.radio0.channel='11'
     uci delete wireless.default_radio0.disabled
 fi
 
