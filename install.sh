@@ -16,53 +16,105 @@ echo "Установка основных пакетов..."
 apk add \
     curl \
     bash \
-    block-mount \
-    blockd \
-    btop \
-    kmod-fs-ext4 \
-    kmod-fs-vfat \
-    kmod-usb-storage \
-    kmod-usb-storage-uas \
-    kmod-usb3 \
-    lsblk \
     lsd \
     luci-i18n-base-ru \
     luci-i18n-attendedsysupgrade-ru \
     luci-i18n-filemanager-ru \
     luci-i18n-firewall-ru \
     luci-i18n-package-manager-ru \
-    luci-i18n-transmission-ru \
     nano \
     net-tools-netstat \
-    transmission-daemon \
-    transmission-web \
     && echo "Установка основных пакетов завершена."
 
+printf "Устройство с USB-портом и планируешь использовать накопитель? [y/N]: "
+read usb_answer
+case "$usb_answer" in
+    [Yy]|[Yy][Ee][Ss])
+        apk add blockd kmod-fs-vfat kmod-usb-storage-uas kmod-usb3 lsblk
+        echo "Пакеты для работы с внешними накопителями установлены."
+        ;;
+    *)
+        echo "Пропускаем..."
+        ;;
+esac
+
+is_usb_installed() {
+    apk info -e block-mount >/dev/null 2>&1
+}
+
+if is_usb_installed; then
+    printf "Установить Transmission ? [y/N]: "
+    read answer
+    case "$answer" in
+        [Yy]|[Yy][Ee][Ss])
+            apk add luci-i18n-transmission-ru transmission-web
+            echo "Торрент-клиент установлен"
+            ;;
+        *)
+            echo "Пропускаем..."
+            ;;
+    esac
+fi
+
 echo "Настройка luci..."
+
 uci set luci.main.lang='ru'
-uci set luci.main.mediaurlbase='/luci-static/bootstrap-dark'
+printf "Тема LuCI: (1) Светлая / (2) Темная [2]: "
+read theme_choice
+theme_choice="${theme_choice:-2}"
+case "$theme_choice" in
+    1) uci set luci.main.mediaurlbase='/luci-static/bootstrap-light' ;;
+    *) uci set luci.main.mediaurlbase='/luci-static/bootstrap-dark' ;;
+esac
 uci set luci.main.tablefilters='1'
 uci set attendedsysupgrade.client.login_check_for_upgrades='1'
-uci set system.@system[0].hostname='OpenWRT'
+
+printf "Введи hostname устройства [OpenWRT]: "
+read hostname_input
+hostname_input="${hostname_input:-OpenWRT}"
+uci set system.@system[0].hostname="$hostname_input"
+
 uci set system.@system[0].timezone='MSK-3'
 uci set system.@system[0].zonename='Europe/Moscow'
 uci set system.@system[0].clock_hourcycle='h23'
 uci set system.@system[0].clock_timestyle='1'
 
+printf "Введи SSID для Wi-Fi [OpenWRT]: "
+read ssid_input
+ssid_input="${ssid_input:-OpenWRT}"
+
+printf "Устройство поддерживает WPA3? Если не уверен - ставь WPA2/WPA3 mixed, обычно работает. (1) WPA3 / (2) WPA2/WPA3 mixed / (3) только WPA2 [2]: "
+read enc_choice
+enc_choice="${enc_choice:-2}"
+case "$enc_choice" in
+    1) encryption="sae" ;;
+    3) encryption="psk2" ;;
+    *) encryption="sae-mixed" ;;
+esac
+
+printf "Введи пароль Wi-Fi (минимум 8 символов): "
+read wifi_key_input
+while [ ${#wifi_key_input} -lt 8 ]; do
+    printf "Пароль слишком короткий, минимум 8 символов. Повтори: "
+    read wifi_key_input
+done
+
 uci set wireless.default_radio0.mode='ap'
-uci set wireless.default_radio0.ssid='OpenWRT'
-uci set wireless.default_radio0.encryption='sae-mixed'
-uci set wireless.default_radio0.key='00000039A8'
+uci set wireless.default_radio0.ssid="$ssid_input"
+uci set wireless.default_radio0.encryption="$encryption"
+uci set wireless.default_radio0.key="$wifi_key_input"
 uci set wireless.radio0.channel='11'
 uci delete wireless.default_radio0.disabled
 
 uci set wireless.default_radio1.mode='ap'
-uci set wireless.default_radio1.ssid='OpenWRT'
-uci set wireless.default_radio1.encryption='sae-mixed'
-uci set wireless.default_radio1.key='00000039A8'
+uci set wireless.default_radio1.ssid="$ssid_input"
+uci set wireless.default_radio1.encryption="$encryption"
+uci set wireless.default_radio1.key="$wifi_key_input"
 uci delete wireless.default_radio1.disabled
 
+if apk info -e transmission-daemon >/dev/null 2>&1; then
 uci set transmission.@transmission[0].enabled='1'
+fi
 
 uci commit
 
