@@ -25,16 +25,31 @@ apk update
 echo "Установка основных пакетов..."
 apk add \
     curl \
-    bash \
-    lsd \
     luci-i18n-base-ru \
     luci-i18n-attendedsysupgrade-ru \
     luci-i18n-filemanager-ru \
     luci-i18n-firewall-ru \
     luci-i18n-package-manager-ru \
     nano \
-    net-tools-netstat \
-    && echo "Установка основных пакетов завершена."
+    openssh-sftp-server \
+    && echo "curl, nano и RU локализация установлены."
+
+printf "Нужно установить дополнительные пакеты ? [y/N]: "
+read answer
+case "$answer" in
+    [Yy]|[Yy][Ee][Ss])
+        printf "Введи имена пакетов для установки (через пробел): "
+        read packages
+        if [ -n "$packages" ]; then
+            apk add $packages
+        else
+            echo "Список пуст, пропускаю установку."
+        fi
+        ;;
+    *)
+        echo "Пропускаю установку дополнительных пакетов."
+        ;;
+esac
 
 printf "Устройство с USB-портом и планируешь использовать накопитель? [y/N]: "
 read usb_answer
